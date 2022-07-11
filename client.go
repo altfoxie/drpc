@@ -16,18 +16,13 @@ type Client struct {
 	conn net.Conn
 }
 
-// New creates a new Discord RPC client with the given application ID and connects it.
+// New creates a new Discord RPC client with the given application ID.
 func New(id string) (*Client, error) {
 	if id == "" {
 		return nil, errors.New("drpc: application id is empty")
 	}
 
-	client := &Client{id: id}
-	if err := client.Connect(); err != nil {
-		return nil, err
-	}
-
-	return client, nil
+	return &Client{id: id}, nil
 }
 
 // Connect connects the client to the Discord RPC server and sends a handshake.
