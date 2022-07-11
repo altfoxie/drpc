@@ -32,8 +32,8 @@ type Handshake struct {
 // FrameHeader is a header for a frame.
 type FrameHeader struct {
 	Command string `json:"cmd"`
-	Event   string `json:"evt"`
-	Nonce   string `json:"nonce"`
+	Event   string `json:"evt,omitempty"`
+	Nonce   string `json:"nonce,omitempty"`
 }
 
 // NewFrameHeader creates a new frame header with the given command.
