@@ -6,8 +6,14 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net"
 	"os"
+	"syscall"
+)
+
+var (
+	ErrConnFailed = errors.New("drpc: connection failed")
 )
 
 // Client is a Discord RPC client.
@@ -17,6 +23,8 @@ type Client struct {
 }
 
 // New creates a new Discord RPC client with the given application ID.
+//
+// The application ID given must not be empty.
 func New(id string) (*Client, error) {
 	if id == "" {
 		return nil, errors.New("drpc: application id is empty")
@@ -26,7 +34,7 @@ func New(id string) (*Client, error) {
 }
 
 // Connect connects the client to the Discord RPC server and sends a handshake.
-// It returns a nil if the client is already connected.
+// It returns nil if the client is already connected.
 func (c *Client) Connect() (err error) {
 	if c.conn != nil {
 		return nil
@@ -81,13 +89,17 @@ func (c *Client) Write(opcode Opcode, payload interface{}) error {
 	}
 
 	_, err = c.conn.Write(buf.Bytes())
-	if err != nil {
+	// Attempt re-connection only if the socket
+	// has been closed or broken
+	if errors.Is(err, syscall.EPIPE) {
 		if err := c.Close(); err != nil {
-			return err
+			return fmt.Errorf("drpc: reconnect close: %w", err)
 		}
 		if err := c.Connect(); err != nil {
-			return err
+			return fmt.Errorf("drpc: reconnect: %w", err)
 		}
+
+		return c.Write(opcode, payload)
 	}
 
 	return err
