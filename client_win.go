@@ -22,5 +22,5 @@ func connect() (net.Conn, error) {
 		}
 	}
 
-	return nil, errors.New("drpc: connection failed")
+	return nil, ErrConnFailed
 }

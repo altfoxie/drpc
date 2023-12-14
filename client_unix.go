@@ -3,7 +3,6 @@
 package drpc
 
 import (
-	"errors"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,6 +12,12 @@ import (
 
 func connect() (net.Conn, error) {
 	temp := "/tmp"
+	subDirs := []string{
+		"",
+		"app/com.discordapp.Discord",
+		"snap.discord",
+	}
+
 	for _, name := range []string{"XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"} {
 		if value := os.Getenv(name); value != "" {
 			temp = value
@@ -20,16 +25,18 @@ func connect() (net.Conn, error) {
 		}
 	}
 
-	for i := 0; i < 10; i++ {
-		conn, err := net.DialTimeout(
-			"unix",
-			filepath.Join(temp, "discord-ipc-"+strconv.Itoa(i)),
-			time.Second*5,
-		)
-		if err == nil {
-			return conn, nil
+	for _, sd := range subDirs {
+		for i := 0; i < 10; i++ {
+			conn, err := net.DialTimeout(
+				"unix",
+				filepath.Join(temp, sd, "discord-ipc-"+strconv.Itoa(i)),
+				time.Second*5,
+			)
+			if err == nil {
+				return conn, nil
+			}
 		}
 	}
 
-	return nil, errors.New("drpc: connection failed")
+	return nil, ErrConnFailed
 }
