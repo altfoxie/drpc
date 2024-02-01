@@ -7,13 +7,10 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"net"
 	"os"
 	"syscall"
-)
-
-var (
-	ErrConnFailed = errors.New("drpc: connection failed")
 )
 
 // Client is a Discord RPC client.
@@ -25,16 +22,18 @@ type Client struct {
 // New creates a new Discord RPC client with the given application ID.
 //
 // The application ID given must not be empty.
-func New(id string) (*Client, error) {
+func New(id string) *Client {
 	if id == "" {
-		return nil, errors.New("drpc: application id is empty")
+		panic("drpc: empty application id")
 	}
 
-	return &Client{id: id}, nil
+	return &Client{id: id}
 }
 
 // Connect connects the client to the Discord RPC server and sends a handshake.
 // It returns nil if the client is already connected.
+//
+// If the server has not been found, [os.ErrNotExist] will be returned.
 func (c *Client) Connect() (err error) {
 	if c.conn != nil {
 		return nil
@@ -77,26 +76,22 @@ func (c *Client) Write(opcode Opcode, payload interface{}) error {
 		return err
 	}
 
-	buf := bytes.NewBuffer(nil)
-	if err = binary.Write(buf, binary.LittleEndian, opcode); err != nil {
-		return err
-	}
-	if err = binary.Write(buf, binary.LittleEndian, uint32(len(v))); err != nil {
-		return err
-	}
-	if _, err = buf.Write(v); err != nil {
-		return err
-	}
+	buf := new(bytes.Buffer)
+	// [bytes.Buffer]: err is always nil.
+	// [binary.Write] src: only writer err returned on non-basic type
+	_ = binary.Write(buf, binary.LittleEndian, opcode)
+	_ = binary.Write(buf, binary.LittleEndian, uint32(len(v)))
+	_, _ = buf.Write(v)
 
 	_, err = c.conn.Write(buf.Bytes())
 	// Attempt re-connection only if the socket
 	// has been closed or broken
 	if errors.Is(err, syscall.EPIPE) {
 		if err := c.Close(); err != nil {
-			return fmt.Errorf("drpc: reconnect close: %w", err)
+			return fmt.Errorf("reconnect close: %w", err)
 		}
 		if err := c.Connect(); err != nil {
-			return fmt.Errorf("drpc: reconnect: %w", err)
+			return fmt.Errorf("reconnect: %w", err)
 		}
 
 		return c.Write(opcode, payload)
@@ -107,6 +102,9 @@ func (c *Client) Write(opcode Opcode, payload interface{}) error {
 
 // Read reads a message from the connection.
 // It automatically reconnects if the connection is closed.
+//
+// If the connection returned short data, [io.ErrNoProgress] will
+// be returned.
 func (c *Client) Read() (*Message, error) {
 	if err := c.Connect(); err != nil {
 		return nil, err
@@ -120,7 +118,7 @@ func (c *Client) Read() (*Message, error) {
 	}
 
 	if n <= 8 {
-		return nil, errors.New("drpc: invalid message length")
+		return nil, io.ErrNoProgress
 	}
 
 	msg := &Message{binary.LittleEndian.Uint32(buf[:4]), buf[8:n]}

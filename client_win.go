@@ -4,6 +4,7 @@ package drpc
 
 import (
 	"net"
+	"os"
 	"strconv"
 	"time"
 
@@ -21,5 +22,5 @@ func connect() (net.Conn, error) {
 		}
 	}
 
-	return nil, ErrConnFailed
+	return nil, os.ErrNotExist
 }
