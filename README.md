@@ -10,8 +10,7 @@ $ go get -u github.com/altfoxie/drpc
 ## Usage
 You need to create a client.
 ```go
-client, err := drpc.New("APP_ID")
-if err != nil { /* handle error */ }
+client := drpc.New("APP_ID")
 ```
 
 Now you can use the client to set player's activity. DRPC maintains a persistent connection to Discord RPC, so you don't need to worry about reconnecting.

@@ -4,7 +4,6 @@ package drpc
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -13,30 +12,31 @@ import (
 )
 
 func connect() (net.Conn, error) {
-	temp := "/tmp"
+	dir := "/tmp"
 	subDirs := []string{
 		"",
 		"app/com.discordapp.Discord",
+		".flatpak/dev.vencord.Vesktop/xdg-run",
 		"snap.discord",
 	}
 
 	for _, name := range []string{"XDG_RUNTIME_DIR", "TMPDIR", "TMP", "TEMP"} {
 		if value := os.Getenv(name); value != "" {
-			temp = value
+			dir = value
 			break
 		}
 	}
 
 	for _, sd := range subDirs {
-		for i := 0; i < 10; i++ {
+		for i := 0; i < 9; i++ {
 			conn, err := net.DialTimeout(
 				"unix",
-				filepath.Join(temp, sd, "discord-ipc-"+strconv.Itoa(i)),
+				filepath.Join(dir, sd, "discord-ipc-"+strconv.Itoa(i)),
 				time.Second*5,
 			)
 			// socket exists, but it has a error.
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return nil, fmt.Errorf("%w: %w", ErrConnFailed, err)
+				return nil, err
 			}
 			if err == nil {
 				return conn, nil
@@ -44,5 +44,5 @@ func connect() (net.Conn, error) {
 		}
 	}
 
-	return nil, errors.New("drpc: discord is not running")
+	return nil, os.ErrNotExist
 }

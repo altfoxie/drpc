@@ -7,12 +7,9 @@ import (
 )
 
 func main() {
-	client, err := drpc.New("975346661540909056")
-	if err != nil {
-		panic(err)
-	}
+	client := drpc.New("975346661540909056")
 
-	err = client.SetActivity(drpc.Activity{
+	err := client.SetActivity(drpc.Activity{
 		Details: "Details",
 		State:   "State",
 		Timestamps: &drpc.Timestamps{
