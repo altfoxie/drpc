@@ -17,10 +17,13 @@ func connect() (net.Conn, error) {
 			`\\.\pipe\discord-ipc-`+strconv.Itoa(i),
 			time.Second*5,
 		)
+		if err != nil {
+			return nil, err
+		}
 		if err == nil {
 			return conn, nil
 		}
 	}
 
-	return nil, ErrConnFailed
+	return nil, ErrNotRunning
 }
