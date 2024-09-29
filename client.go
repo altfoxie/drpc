@@ -13,7 +13,11 @@ import (
 )
 
 var (
-	ErrConnFailed = errors.New("drpc: connection failed")
+	ErrInvalidID     = errors.New("application id is empty")
+	ErrInvalidMsgLen = errors.New("connection sent invalid message length")
+
+	// If the RPC server socket hasn't been found or does not exist
+	ErrNotRunning = errors.New("discord is not running")
 )
 
 // Client is a Discord RPC client.
@@ -27,7 +31,7 @@ type Client struct {
 // The application ID given must not be empty.
 func New(id string) (*Client, error) {
 	if id == "" {
-		return nil, errors.New("drpc: application id is empty")
+		return nil, ErrInvalidID
 	}
 
 	return &Client{id: id}, nil
@@ -93,10 +97,10 @@ func (c *Client) Write(opcode Opcode, payload interface{}) error {
 	// has been closed or broken
 	if errors.Is(err, syscall.EPIPE) {
 		if err := c.Close(); err != nil {
-			return fmt.Errorf("drpc: reconnect close: %w", err)
+			return fmt.Errorf("reconnect close: %w", err)
 		}
 		if err := c.Connect(); err != nil {
-			return fmt.Errorf("drpc: reconnect: %w", err)
+			return fmt.Errorf("reconnect: %w", err)
 		}
 
 		return c.Write(opcode, payload)
@@ -120,7 +124,7 @@ func (c *Client) Read() (*Message, error) {
 	}
 
 	if n <= 8 {
-		return nil, errors.New("drpc: invalid message length")
+		return nil, ErrInvalidMsgLen
 	}
 
 	msg := &Message{binary.LittleEndian.Uint32(buf[:4]), buf[8:n]}

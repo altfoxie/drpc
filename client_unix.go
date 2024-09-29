@@ -4,7 +4,6 @@ package drpc
 
 import (
 	"errors"
-	"fmt"
 	"net"
 	"os"
 	"path/filepath"
@@ -36,7 +35,7 @@ func connect() (net.Conn, error) {
 			)
 			// socket exists, but it has a error.
 			if err != nil && !errors.Is(err, os.ErrNotExist) {
-				return nil, fmt.Errorf("%w: %w", ErrConnFailed, err)
+				return nil, err
 			}
 			if err == nil {
 				return conn, nil
@@ -44,5 +43,5 @@ func connect() (net.Conn, error) {
 		}
 	}
 
-	return nil, errors.New("drpc: discord is not running")
+	return nil, ErrNotRunning
 }
