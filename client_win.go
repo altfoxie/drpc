@@ -3,7 +3,6 @@
 package drpc
 
 import (
-	"errors"
 	"net"
 	"strconv"
 	"time"
